@@ -3,8 +3,9 @@ title: SUNO Music DNA Hybridizer
 emoji: 🎧
 colorFrom: orange
 colorTo: yellow
-sdk: docker
-app_port: 7860
+sdk: static
+app_file: dist/index.html
+app_build_command: npm run build
 pinned: false
 ---
 
