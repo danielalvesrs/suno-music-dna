@@ -18,7 +18,7 @@ O projeto foi criado como uma demonstracao de integracao com IA generativa, enge
 
 Demo no Hugging Face Spaces:
 
-https://huggingface.co/spaces/danielalvesrs/suno-music-dna
+https://huggingface.co/spaces/11cs11/suno-music-dna
 
 O app nao inclui uma chave Gemini do autor. Para testar a demo, gere uma chave gratuita no Google AI Studio e cole no painel `Chave API` do app.
 
