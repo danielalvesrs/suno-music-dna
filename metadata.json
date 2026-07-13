@@ -1,0 +1,6 @@
+{
+  "name": "SUNO Music DNA",
+  "description": "Analisa playlists do YouTube para extrair o DNA musical (BPM, tonalidade, estrutura) e gerar um prompt para o SUNO.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
