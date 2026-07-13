@@ -4,8 +4,7 @@ emoji: 🎧
 colorFrom: red
 colorTo: yellow
 sdk: static
-app_file: dist/index.html
-app_build_command: npm run build
+app_file: index.html
 pinned: false
 ---
 
@@ -17,11 +16,32 @@ O projeto foi criado como uma demonstracao de integracao com IA generativa, enge
 
 ## Experimente Sem Clonar
 
+Demo no GitHub Pages:
+
+https://danielalvesrs.github.io/suno-music-dna/
+
+O app nao inclui uma chave Gemini do autor. Para testar a demo, gere uma chave gratuita no Google AI Studio e cole no painel `Chave API` do app.
+
+## Autor
+
+Criado por Daniel Alves.
+
+GitHub:
+
+https://github.com/danielalvesrs
+
+## Outros Projetos Publicados
+
+- Stroop App (gratuito): https://play.google.com/store/apps/details?id=app.netlify.stroopapp.twa
+- Personal Binaural (pago): https://play.google.com/store/apps/details?id=app.netlify.personal_binaural.twa
+
+## Hugging Face
+
 Demo no Hugging Face Spaces:
 
 https://huggingface.co/spaces/11cs11/suno-music-dna
 
-O app nao inclui uma chave Gemini do autor. Para testar a demo, gere uma chave gratuita no Google AI Studio e cole no painel `Chave API` do app.
+Observacao: o Hugging Face pode exigir creditos/PRO para executar Spaces nesta conta. A demo principal esta publicada no GitHub Pages.
 
 ## O Que Ele Faz
 

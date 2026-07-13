@@ -1329,14 +1329,29 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-8 border-t border-gray-100 mt-16 bg-white">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-400">
-            <Dna size={16} />
-            <span className="text-xs font-semibold">© 2026 SUNO Music DNA Hybridizer. Alimentado por Gemini 3.5.</span>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-5">
+          <div className="flex flex-col items-center lg:items-start gap-1 text-gray-400 text-center lg:text-left">
+            <div className="flex items-center gap-2">
+              <Dna size={16} />
+              <span className="text-xs font-semibold">� 2026 SUNO Music DNA Hybridizer. Criado por Daniel Alves.</span>
+            </div>
+            <span className="text-[10px] font-medium">Projeto experimental gratuito alimentado por Gemini. Use sua propria chave no painel Chave API.</span>
           </div>
-          <div className="flex gap-6 text-xs font-bold text-gray-400">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-bold text-gray-400">
+            <a href="https://play.google.com/store/apps/details?id=app.netlify.stroopapp.twa" target="_blank" rel="noreferrer" className="hover:text-orange-500 inline-flex items-center gap-1">
+              Stroop App
+              <ExternalLink size={12} />
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=app.netlify.personal_binaural.twa" target="_blank" rel="noreferrer" className="hover:text-orange-500 inline-flex items-center gap-1">
+              Personal Binaural
+              <ExternalLink size={12} />
+            </a>
+            <a href="https://github.com/danielalvesrs/suno-music-dna" target="_blank" rel="noreferrer" className="hover:text-orange-500 inline-flex items-center gap-1">
+              GitHub
+              <ExternalLink size={12} />
+            </a>
             <a href="https://suno.com/create" target="_blank" rel="noreferrer" className="hover:text-orange-500">SUNO AI</a>
-            <a href="#" className="hover:text-orange-500" onClick={(e) => { e.preventDefault(); reset(); }}>Nova Análise</a>
+            <a href="#" className="hover:text-orange-500" onClick={(e) => { e.preventDefault(); reset(); }}>Nova Analise</a>
           </div>
         </div>
       </footer>

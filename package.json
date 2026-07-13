@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://huggingface.co/spaces/11cs11/suno-music-dna",
+  "homepage": "https://danielalvesrs.github.io/suno-music-dna/",
+  "author": "Daniel Alves",
   "repository": {
     "type": "git",
     "url": "https://github.com/danielalvesrs/suno-music-dna.git"
