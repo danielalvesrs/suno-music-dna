@@ -636,11 +636,15 @@ export default function App() {
                   <div className="space-y-6 pb-8 text-sm">
                     <div className="space-y-2">
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Por padrão, o aplicativo utiliza uma chave de API Gemini do criador para analisar as playlists. Se houver muitos acessos simultâneos, essa chave pode atingir limites de cota.
+                        Este app nao inclui uma chave Gemini do autor. Para usar a demo publica, gere uma chave gratuita no Google AI Studio e cole abaixo.
                       </p>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Para garantir uso ilimitado e imediato, você pode conectar sua própria chave de API gratuita. Ela ficará <strong>armazenada com total segurança apenas no seu navegador (localStorage)</strong>.
+                        Sua chave fica armazenada somente no seu navegador (<strong>localStorage</strong>). Evite usar em computadores compartilhados e remova quando quiser.
                       </p>
+                      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+                        Gerar chave no Google AI Studio
+                        <ExternalLink size={13} />
+                      </a>
                     </div>
 
                     <div className="space-y-4 pt-2">
@@ -681,7 +685,7 @@ export default function App() {
                               localStorage.removeItem('user_gemini_api_key');
                               setCustomApiKey("");
                               setHasCustomKey(false);
-                              alert('Sua chave personalizada foi removida. O app voltou a usar a chave padrão.');
+                              alert('Sua chave personalizada foi removida. Para usar a demo novamente, salve uma nova chave Gemini.');
                             }}
                             className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
                           >
