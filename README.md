@@ -1,7 +1,7 @@
 ---
 title: SUNO Music DNA Hybridizer
 emoji: 🎧
-colorFrom: orange
+colorFrom: red
 colorTo: yellow
 sdk: static
 app_file: dist/index.html
