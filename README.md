@@ -4,6 +4,14 @@ Aplicativo experimental que transforma playlists, links ou listas de musicas em 
 
 O projeto foi criado como uma demonstracao de integracao com IA generativa, engenharia de prompts musicais e experiencia de produto para criadores.
 
+## Experimente Sem Clonar
+
+Demo no Hugging Face Spaces:
+
+https://huggingface.co/spaces/danielalvesrs/suno-music-dna
+
+O app nao inclui uma chave Gemini do autor. Para testar a demo, gere uma chave gratuita no Google AI Studio e cole no painel `Chave API` do app.
+
 ## O Que Ele Faz
 
 - Extrai ate 10 faixas de links ou listas em texto.
@@ -59,7 +67,7 @@ npm.cmd run dev
 
 Este projeto nao inclui uma chave de API propria. Para usar a analise com Gemini:
 
-1. Acesse https://aistudio.google.com/app/apikey
+1. Acesse <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
 2. Faca login com sua conta Google.
 3. Clique em `Create API Key`.
 4. Copie a chave gerada.
@@ -79,3 +87,34 @@ npm run start
 ## Observacao
 
 O app nao processa audio diretamente. Ele usa metadados e conhecimento do modelo para inferir caracteristicas musicais e gerar prompts criativos para o Suno.
+
+## Como Colaborar
+
+Contribuicoes sao bem-vindas via pull request.
+
+Fluxo recomendado:
+
+```bash
+gh repo fork danielalvesrs/suno-music-dna --clone
+cd suno-music-dna
+npm install
+git checkout -b minha-melhoria
+```
+
+Tambem e possivel clicar em `Fork` no GitHub e clonar o seu fork manualmente.
+
+Antes de abrir o PR:
+
+```bash
+npm run lint
+npm run build
+```
+
+Boas areas para contribuir:
+
+- Melhorar extracao de playlists e tratamento de links.
+- Refinar prompts musicais para Suno.
+- Adicionar exportacao para outros geradores musicais.
+- Melhorar responsividade e acessibilidade.
+- Criar suporte a deploy via Hugging Face Spaces.
+- Adicionar testes e validacao de dados da API.
