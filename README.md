@@ -32,8 +32,9 @@ https://github.com/danielalvesrs
 
 ## Outros Projetos Publicados
 
-- Stroop App (gratuito): https://play.google.com/store/apps/details?id=app.netlify.stroopapp.twa
-- Personal Binaural (pago): https://play.google.com/store/apps/details?id=app.netlify.personal_binaural.twa
+[![Stroop App no Google Play](https://img.shields.io/badge/Google_Play-Stroop_App-414141?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=app.netlify.stroopapp.twa)
+
+[![Personal Binaural no Google Play](https://img.shields.io/badge/Google_Play-Personal_Binaural-414141?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=app.netlify.personal_binaural.twa)
 
 ## Hugging Face
 
