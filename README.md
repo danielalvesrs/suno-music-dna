@@ -30,6 +30,10 @@ GitHub:
 
 https://github.com/danielalvesrs
 
+LinkedIn:
+
+https://www.linkedin.com/in/daniel-da-silva-alves/
+
 ## Outros Projetos Publicados
 
 [![Stroop App no Google Play](https://img.shields.io/badge/Google_Play-Stroop_App-414141?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=app.netlify.stroopapp.twa)

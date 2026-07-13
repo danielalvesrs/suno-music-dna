@@ -1350,6 +1350,10 @@ export default function App() {
               GitHub
               <ExternalLink size={12} />
             </a>
+            <a href="https://www.linkedin.com/in/daniel-da-silva-alves/" target="_blank" rel="noreferrer" className="hover:text-orange-500 inline-flex items-center gap-1">
+              LinkedIn
+              <ExternalLink size={12} />
+            </a>
             <a href="https://suno.com/create" target="_blank" rel="noreferrer" className="hover:text-orange-500">SUNO AI</a>
             <a href="#" className="hover:text-orange-500" onClick={(e) => { e.preventDefault(); reset(); }}>Nova Analise</a>
           </div>
