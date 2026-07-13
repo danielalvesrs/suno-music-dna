@@ -1,3 +1,13 @@
+---
+title: SUNO Music DNA Hybridizer
+emoji: 🎧
+colorFrom: orange
+colorTo: yellow
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # SUNO Music DNA Hybridizer
 
 Aplicativo experimental que transforma playlists, links ou listas de musicas em um "DNA musical" e gera prompts estruturados para usar no modo Custom do Suno AI.
