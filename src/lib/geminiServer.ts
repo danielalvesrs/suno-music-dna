@@ -1,8 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
-const CREATIVE_MODEL = "gemini-3.5-flash";
-const CREATIVE_FALLBACK_MODEL = COST_OPTIMIZED_MODEL;
+const CREATIVE_MODEL = COST_OPTIMIZED_MODEL;
+const CREATIVE_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 const TRANSIENT_GEMINI_MESSAGE =
   "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
 const QUOTA_GEMINI_MESSAGE =
@@ -200,8 +200,6 @@ export const createHybridDNAServer = async (
   clientApiKey?: string
 ): Promise<HybridDNA> => {
   const ai = getAi(clientApiKey);
-  const catchyUrl = "https://gemini.google.com/gem/caaa9af72be9/6bed029009a4dd1a";
-  const sunoGuideUrl = "https://learnprompting.org/blog/guide-suno";
   
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Automático pelo SUNO")
     ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.`
@@ -225,8 +223,8 @@ export const createHybridDNAServer = async (
   - ${baseText}
 
   Also:
-  1. Analyze the content of ${catchyUrl} to identify the "catchy spice" (elements that make a song catchy/pegajosa), specifically looking for the "Golden Progression" (Progressão de Ouro) and other factors that make music addictive.
-  2. Analyze the Suno Guide at ${sunoGuideUrl} to understand how to create highly optimized prompts using metatags (like [Verse], [Chorus], [Bridge], [Outro]), style tags, and proper structure.
+  1. Identify the "catchy spice" (elements that make a song catchy/pegajosa), specifically looking for strong progressions, memorable hooks, contrast, repetition, and other factors that make music addictive.
+  2. Apply Suno prompt best practices using metatags (like [Verse], [Chorus], [Bridge], [Outro]), style tags, and proper structure. Do not fetch external URLs; rely on built-in musical and prompt-engineering knowledge.
   3. Synthesize the "Thematic Ideas" from all input tracks into a single, powerful "Thematic Narrative" for the new song.
   4. Generate a highly creative Portuguese Title for this hybrid song (if lyrics language is not Portuguese, you can generate a title in the selected language: ${lyricsLanguage}).
   5. Create a highly optimized Suno Style Prompt (sunoStylePrompt):
@@ -241,7 +239,7 @@ export const createHybridDNAServer = async (
        - The lyrics MUST strictly respect and utilize the typical poetic meter, syllable counts, rhythm, and natural cadence of the selected language: ${lyricsLanguage}.
        - Implement a clear, elegant rhyme scheme (such as AABB, ABAB, or other native verse forms) that flows perfectly when sung.
        - The rhymes should be rich, natural, expressive, and fit the mood and energy of the musical DNA perfectly. Avoid forced rhymes or awkward sentence structure.
-     - Incorporate the "Golden Progression" or similar catchy elements identified from the first URL.
+     - Incorporate a strong catchy progression, recurring hook, or similar sticky musical element identified from the input DNA.
      ${mashupMode ? "- Since this is a MASHUP, explicitly use style tags like [Mashup], [Remix], [Style Blend] and describe how the different track elements collide." : ""}
   
   Return a single JSON object matching the requested schema.`;
@@ -250,7 +248,6 @@ export const createHybridDNAServer = async (
     model,
     contents: prompt,
     config: {
-      tools: [{ urlContext: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -298,7 +295,6 @@ export const updateSunoPromptServer = async (
   clientApiKey?: string
 ): Promise<{ sunoStylePrompt: string; sunoLyrics: string }> => {
   const ai = getAi(clientApiKey);
-  const sunoGuideUrl = "https://learnprompting.org/blog/guide-suno";
   
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Automático pelo SUNO")
     ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.`
@@ -323,7 +319,7 @@ export const updateSunoPromptServer = async (
   - ${baseText}
   
   Requirements:
-  1. Use the Suno Guide at ${sunoGuideUrl} for best practices.
+  1. Apply Suno prompt best practices using built-in musical and prompt-engineering knowledge. Do not fetch external URLs.
   2. The user has switched to: ${instrumentalOnly ? "INSTRUMENTAL ONLY" : "VOCAL AND INSTRUMENTAL"}.
   3. Generate updated sunoStylePrompt (MAX 300 characters!). It must include precise style blends, production nuances, detailed textures, mood, BPM, Key, and custom vocal/instrumental styles.
      - CRITICAL INSTRUMENTAL RULE: If instrumentalOnly is true (currently: ${instrumentalOnly}), you MUST NOT include any vocal instructions (e.g., "vocals", "singing", "voice", "singer" are FORBIDDEN). Instead, you MUST include tags like "instrumental, no vocals, solo instruments, pure arrangement". If instrumentalOnly is false, ensure it references vocals in ${lyricsLanguage}.
@@ -341,7 +337,6 @@ export const updateSunoPromptServer = async (
     model,
     contents: prompt,
     config: {
-      tools: [{ urlContext: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

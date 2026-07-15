@@ -28,8 +28,8 @@ export interface HybridDNA {
 }
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
-const CREATIVE_MODEL = "gemini-3.5-flash";
-const CREATIVE_FALLBACK_MODEL = COST_OPTIMIZED_MODEL;
+const CREATIVE_MODEL = COST_OPTIMIZED_MODEL;
+const CREATIVE_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 const TRANSIENT_GEMINI_MESSAGE =
   "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
 const QUOTA_GEMINI_MESSAGE =
@@ -261,8 +261,6 @@ const createHybridDNABrowser = async (
 ): Promise<HybridDNA> => {
   throwIfAborted(signal);
   const ai = getBrowserAi();
-  const catchyUrl = "https://gemini.google.com/gem/caaa9af72be9/6bed029009a4dd1a";
-  const sunoGuideUrl = "https://learnprompting.org/blog/guide-suno";
   const { soloText, baseText } = buildInstrumentInstructions(soloInstruments, baseInstruments);
 
   const prompt = `Based on the following musical DNAs, create a single "Hybrid DNA" that combines their best elements into a new, cohesive musical profile.
@@ -279,8 +277,8 @@ const createHybridDNABrowser = async (
   - ${baseText}
 
   Also:
-  1. Analyze the content of ${catchyUrl} to identify the "catchy spice" (elements that make a song catchy/pegajosa), specifically looking for the "Golden Progression" (Progressão de Ouro) and other factors that make music addictive.
-  2. Analyze the Suno Guide at ${sunoGuideUrl} to understand how to create highly optimized prompts using metatags (like [Verse], [Chorus], [Bridge], [Outro]), style tags, and proper structure.
+  1. Identify the "catchy spice" (elements that make a song catchy/pegajosa), specifically looking for strong progressions, memorable hooks, contrast, repetition, and other factors that make music addictive.
+  2. Apply Suno prompt best practices using metatags (like [Verse], [Chorus], [Bridge], [Outro]), style tags, and proper structure. Do not fetch external URLs; rely on built-in musical and prompt-engineering knowledge.
   3. Synthesize the "Thematic Ideas" from all input tracks into a single, powerful "Thematic Narrative" for the new song.
   4. Generate a highly creative Portuguese Title for this hybrid song (if lyrics language is not Portuguese, you can generate a title in the selected language: ${lyricsLanguage}).
   5. Create a highly optimized Suno Style Prompt (sunoStylePrompt):
@@ -301,7 +299,6 @@ const createHybridDNABrowser = async (
     model: CREATIVE_MODEL,
     contents: prompt,
     config: {
-      tools: [{ urlContext: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -331,7 +328,6 @@ const createHybridDNABrowser = async (
       model: CREATIVE_FALLBACK_MODEL,
       contents: prompt,
       config: {
-        tools: [{ urlContext: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -372,7 +368,6 @@ const updateSunoPromptBrowser = async (
 ): Promise<{ sunoStylePrompt: string; sunoLyrics: string }> => {
   throwIfAborted(signal);
   const ai = getBrowserAi();
-  const sunoGuideUrl = "https://learnprompting.org/blog/guide-suno";
   const { soloText, baseText } = buildInstrumentInstructions(soloInstruments, baseInstruments);
 
   const prompt = `Update the Suno AI prompt configuration for this Hybrid DNA.
@@ -390,7 +385,7 @@ const updateSunoPromptBrowser = async (
   - ${baseText}
 
   Requirements:
-  1. Use the Suno Guide at ${sunoGuideUrl} for best practices.
+  1. Apply Suno prompt best practices using built-in musical and prompt-engineering knowledge. Do not fetch external URLs.
   2. The user has switched to: ${instrumentalOnly ? "INSTRUMENTAL ONLY" : "VOCAL AND INSTRUMENTAL"}.
   3. Generate updated sunoStylePrompt (MAX 300 characters!).
      - If instrumentalOnly is true (currently: ${instrumentalOnly}), do not include vocal instructions. If instrumentalOnly is false, reference vocals in ${lyricsLanguage}.
@@ -405,7 +400,6 @@ const updateSunoPromptBrowser = async (
     model: CREATIVE_MODEL,
     contents: prompt,
     config: {
-      tools: [{ urlContext: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -421,7 +415,6 @@ const updateSunoPromptBrowser = async (
       model: CREATIVE_FALLBACK_MODEL,
       contents: prompt,
       config: {
-        tools: [{ urlContext: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
