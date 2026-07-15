@@ -2,6 +2,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
 const CREATIVE_MODEL = "gemini-3.5-flash";
+const CREATIVE_FALLBACK_MODEL = COST_OPTIMIZED_MODEL;
+const TRANSIENT_GEMINI_MESSAGE =
+  "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
+const QUOTA_GEMINI_MESSAGE =
+  "A cota da API Gemini parece ter sido atingida para esta chave/projeto. Verifique os limites no Google AI Studio ou tente outra chave.";
 
 const getAi = (clientApiKey?: string) => {
   const apiKey = clientApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
@@ -18,23 +23,99 @@ const getAi = (clientApiKey?: string) => {
   });
 };
 
-// Retry helper for API rate-limits/503/High-Demand errors with exponential backoff
+const getErrorText = (error: unknown): string => {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const trimmed = raw.trim();
+
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return String(parsed?.error?.message || parsed?.message || raw);
+    } catch {
+      return raw;
+    }
+  }
+
+  return raw;
+};
+
+const isTransientGeminiError = (error: unknown): boolean => {
+  const text = getErrorText(error).toLowerCase();
+  return (
+    text.includes("503") ||
+    text.includes("unavailable") ||
+    text.includes("high demand") ||
+    text.includes("overloaded") ||
+    text.includes("temporarily") ||
+    text.includes("temporariamente") ||
+    text.includes("congestionado")
+  );
+};
+
+const isQuotaGeminiError = (error: unknown): boolean => {
+  const text = getErrorText(error).toLowerCase();
+  return (
+    text.includes("429") ||
+    text.includes("quota") ||
+    text.includes("rate limit") ||
+    text.includes("resource_exhausted") ||
+    text.includes("too many requests")
+  );
+};
+
+const getFriendlyGeminiErrorMessage = (error: unknown, fallbackMessage: string): string => {
+  if (isTransientGeminiError(error)) {
+    return TRANSIENT_GEMINI_MESSAGE;
+  }
+
+  if (isQuotaGeminiError(error)) {
+    return QUOTA_GEMINI_MESSAGE;
+  }
+
+  return getErrorText(error) || fallbackMessage;
+};
+
+const toFriendlyGeminiError = (error: unknown, fallbackMessage: string) => {
+  const friendly = new Error(getFriendlyGeminiErrorMessage(error, fallbackMessage));
+  if (isTransientGeminiError(error)) {
+    (friendly as any).statusCode = 503;
+  } else if (isQuotaGeminiError(error)) {
+    (friendly as any).statusCode = 429;
+  }
+  return friendly;
+};
+
+// Retry helper for API rate-limits/503/High-Demand errors with exponential backoff.
 const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1500): Promise<T> => {
   try {
     return await fn();
-  } catch (error: any) {
-    const errorMsg = String(error.message || error).toLowerCase();
-    const isTransient = errorMsg.includes("503") || 
-                      errorMsg.includes("unavailable") || 
-                      errorMsg.includes("high demand") ||
-                      errorMsg.includes("overloaded");
-    
-    if (retries > 0 && isTransient) {
+  } catch (error) {
+    if (retries > 0 && isTransientGeminiError(error)) {
       console.warn(`Gemini API transient error detected. Retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       return callWithRetry(fn, retries - 1, delay * 2);
     }
     throw error;
+  }
+};
+
+const callGeminiWithRetry = async <T>(
+  primary: () => Promise<T>,
+  fallback?: () => Promise<T>
+): Promise<T> => {
+  try {
+    return await callWithRetry(primary);
+  } catch (error) {
+    if (fallback && isTransientGeminiError(error)) {
+      try {
+        console.warn(`Gemini API transient error on ${CREATIVE_MODEL}. Trying ${CREATIVE_FALLBACK_MODEL}.`);
+        return await callWithRetry(fallback, 2, 2000);
+      } catch (fallbackError) {
+        throw toFriendlyGeminiError(fallbackError, TRANSIENT_GEMINI_MESSAGE);
+      }
+    }
+
+    throw toFriendlyGeminiError(error, "Erro ao chamar a API Gemini.");
   }
 };
 
@@ -76,7 +157,7 @@ export const analyzePlaylistDNAServer = async (tracks: { title: string; artist: 
   
   Return the data as a JSON array of objects.`;
 
-  const response = await callWithRetry(() => ai.models.generateContent({
+  const response = await callGeminiWithRetry(() => ai.models.generateContent({
     model: COST_OPTIMIZED_MODEL,
     contents: prompt,
     config: {
@@ -165,8 +246,8 @@ export const createHybridDNAServer = async (
   
   Return a single JSON object matching the requested schema.`;
 
-  const response = await callWithRetry(() => ai.models.generateContent({
-    model: CREATIVE_MODEL,
+  const generateHybrid = (model: string) => ai.models.generateContent({
+    model,
     contents: prompt,
     config: {
       tools: [{ urlContext: {} }],
@@ -194,7 +275,12 @@ export const createHybridDNAServer = async (
         ],
       },
     },
-  }));
+  });
+
+  const response = await callGeminiWithRetry(
+    () => generateHybrid(CREATIVE_MODEL),
+    () => generateHybrid(CREATIVE_FALLBACK_MODEL)
+  );
 
   if (!response.text) {
     throw new Error("A API do Gemini retornou uma resposta vazia.");
@@ -251,8 +337,8 @@ export const updateSunoPromptServer = async (
   
   Return a JSON object with keys: sunoStylePrompt, sunoLyrics.`;
 
-  const response = await callWithRetry(() => ai.models.generateContent({
-    model: CREATIVE_MODEL,
+  const updatePrompt = (model: string) => ai.models.generateContent({
+    model,
     contents: prompt,
     config: {
       tools: [{ urlContext: {} }],
@@ -266,7 +352,12 @@ export const updateSunoPromptServer = async (
         required: ["sunoStylePrompt", "sunoLyrics"],
       },
     },
-  }));
+  });
+
+  const response = await callGeminiWithRetry(
+    () => updatePrompt(CREATIVE_MODEL),
+    () => updatePrompt(CREATIVE_FALLBACK_MODEL)
+  );
 
   if (!response.text) {
     throw new Error("A API do Gemini retornou uma resposta vazia.");
@@ -289,7 +380,7 @@ export const extractTracksFromTextOrUrlServer = async (input: string, clientApiK
   
   Return a JSON array of objects, each containing: "title" and "artist".`;
 
-  const response = await callWithRetry(() => ai.models.generateContent({
+  const response = await callGeminiWithRetry(() => ai.models.generateContent({
     model: COST_OPTIMIZED_MODEL,
     contents: prompt,
     config: {

@@ -9,6 +9,11 @@ import {
   extractTracksFromTextOrUrlServer
 } from "./src/lib/geminiServer";
 
+const sendApiError = (res: express.Response, error: any, fallbackMessage: string) => {
+  const statusCode = Number(error?.statusCode) || 500;
+  res.status(statusCode).json({ error: error?.message || fallbackMessage });
+};
+
 let filename = "";
 let dirname = "";
 try {
@@ -46,7 +51,7 @@ async function startServer() {
       res.json(dnas);
     } catch (error: any) {
       console.error("Error in /api/gemini/analyze-playlist:", error);
-      res.status(500).json({ error: error.message || "Erro ao analisar o DNA da playlist." });
+      sendApiError(res, error, "Erro ao analisar o DNA da playlist.");
     }
   });
 
@@ -71,7 +76,7 @@ async function startServer() {
       res.json(hybrid);
     } catch (error: any) {
       console.error("Error in /api/gemini/create-hybrid:", error);
-      res.status(500).json({ error: error.message || "Erro ao criar DNA híbrido." });
+      sendApiError(res, error, "Erro ao criar DNA hibrido.");
     }
   });
 
@@ -95,7 +100,7 @@ async function startServer() {
       res.json(updated);
     } catch (error: any) {
       console.error("Error in /api/gemini/update-prompt:", error);
-      res.status(500).json({ error: error.message || "Erro ao atualizar prompt do Suno." });
+      sendApiError(res, error, "Erro ao atualizar prompt do Suno.");
     }
   });
 
@@ -112,7 +117,7 @@ async function startServer() {
       res.json(tracks);
     } catch (error: any) {
       console.error("Error in /api/gemini/extract-tracks:", error);
-      res.status(500).json({ error: error.message || "Erro ao extrair músicas." });
+      sendApiError(res, error, "Erro ao extrair musicas.");
     }
   });
 

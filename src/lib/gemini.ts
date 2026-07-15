@@ -29,6 +29,11 @@ export interface HybridDNA {
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
 const CREATIVE_MODEL = "gemini-3.5-flash";
+const CREATIVE_FALLBACK_MODEL = COST_OPTIMIZED_MODEL;
+const TRANSIENT_GEMINI_MESSAGE =
+  "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
+const QUOTA_GEMINI_MESSAGE =
+  "A cota da API Gemini parece ter sido atingida para esta chave/projeto. Verifique os limites no Google AI Studio ou tente outra chave.";
 
 const getCustomApiKey = () => (
   typeof window !== "undefined" ? localStorage.getItem("user_gemini_api_key")?.trim() || "" : ""
@@ -59,6 +64,89 @@ const throwIfAborted = (signal?: AbortSignal) => {
   }
 };
 
+const getErrorText = (error: unknown): string => {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const trimmed = raw.trim();
+
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return String(parsed?.error?.message || parsed?.message || raw);
+    } catch {
+      return raw;
+    }
+  }
+
+  return raw;
+};
+
+const isTransientGeminiError = (error: unknown): boolean => {
+  const text = getErrorText(error).toLowerCase();
+  return (
+    text.includes("503") ||
+    text.includes("unavailable") ||
+    text.includes("high demand") ||
+    text.includes("overloaded") ||
+    text.includes("temporarily") ||
+    text.includes("temporariamente") ||
+    text.includes("congestionado")
+  );
+};
+
+const isQuotaGeminiError = (error: unknown): boolean => {
+  const text = getErrorText(error).toLowerCase();
+  return (
+    text.includes("429") ||
+    text.includes("quota") ||
+    text.includes("rate limit") ||
+    text.includes("resource_exhausted") ||
+    text.includes("too many requests")
+  );
+};
+
+const getFriendlyGeminiErrorMessage = (error: unknown, fallbackMessage: string): string => {
+  if (isTransientGeminiError(error)) {
+    return TRANSIENT_GEMINI_MESSAGE;
+  }
+
+  if (isQuotaGeminiError(error)) {
+    return QUOTA_GEMINI_MESSAGE;
+  }
+
+  return getErrorText(error) || fallbackMessage;
+};
+
+const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1500): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries > 0 && isTransientGeminiError(error)) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return callWithRetry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
+const callGeminiWithRetry = async <T>(
+  primary: () => Promise<T>,
+  fallback?: () => Promise<T>
+): Promise<T> => {
+  try {
+    return await callWithRetry(primary);
+  } catch (error) {
+    if (fallback && isTransientGeminiError(error)) {
+      try {
+        return await callWithRetry(fallback, 2, 2000);
+      } catch (fallbackError) {
+        throw new Error(getFriendlyGeminiErrorMessage(fallbackError, TRANSIENT_GEMINI_MESSAGE));
+      }
+    }
+
+    throw new Error(getFriendlyGeminiErrorMessage(error, "Erro ao chamar a API Gemini."));
+  }
+};
+
 const parseGeminiJson = <T>(text?: string): T => {
   if (!text) {
     throw new Error("A API do Gemini retornou uma resposta vazia.");
@@ -73,30 +161,36 @@ const callServerOrBrowser = async <T>(
   browserFallback: () => Promise<T>,
   serverErrorMessage: string
 ): Promise<T> => {
+  let response: Response;
+
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       method: "POST",
       headers: getCustomHeaders(),
       body: JSON.stringify(body),
       signal,
     });
-
-    if (response.ok) {
-      return response.json();
-    }
-
-    const errData = await response.json().catch(() => ({}));
-    const canUseBrowserFallback = !!getCustomApiKey() && (response.status === 404 || response.status === 405);
-    if (!canUseBrowserFallback) {
-      throw new Error(errData.error || serverErrorMessage);
-    }
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw err;
     }
+
     if (!getCustomApiKey()) {
-      throw err;
+      throw new Error(getFriendlyGeminiErrorMessage(err, serverErrorMessage));
     }
+
+    throwIfAborted(signal);
+    return browserFallback();
+  }
+
+  if (response.ok) {
+    return response.json();
+  }
+
+  const errData = await response.json().catch(() => ({}));
+  const canUseBrowserFallback = !!getCustomApiKey() && (response.status === 404 || response.status === 405);
+  if (!canUseBrowserFallback) {
+    throw new Error(getFriendlyGeminiErrorMessage(errData.error || errData, serverErrorMessage));
   }
 
   throwIfAborted(signal);
@@ -127,7 +221,7 @@ const analyzePlaylistDNABrowser = async (tracks: { title: string; artist: string
 
   Return the data as a JSON array of objects.`;
 
-  const response = await ai.models.generateContent({
+  const response = await callGeminiWithRetry(() => ai.models.generateContent({
     model: COST_OPTIMIZED_MODEL,
     contents: prompt,
     config: {
@@ -151,7 +245,7 @@ const analyzePlaylistDNABrowser = async (tracks: { title: string; artist: string
         },
       },
     },
-  });
+  }));
 
   return parseGeminiJson<TrackDNA[]>(response.text);
 };
@@ -202,7 +296,8 @@ const createHybridDNABrowser = async (
 
   Return a single JSON object matching the requested schema.`;
 
-  const response = await ai.models.generateContent({
+  const response = await callGeminiWithRetry(
+    () => ai.models.generateContent({
     model: CREATIVE_MODEL,
     contents: prompt,
     config: {
@@ -231,7 +326,38 @@ const createHybridDNABrowser = async (
         ],
       },
     },
-  });
+    }),
+    () => ai.models.generateContent({
+      model: CREATIVE_FALLBACK_MODEL,
+      contents: prompt,
+      config: {
+        tools: [{ urlContext: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            baseBpm: { type: Type.NUMBER },
+            dominantKey: { type: Type.STRING },
+            combinedProgression: { type: Type.STRING },
+            suggestedStructure: { type: Type.STRING },
+            averageEnergy: { type: Type.NUMBER },
+            overallMood: { type: Type.STRING },
+            instruments: { type: Type.ARRAY, items: { type: Type.STRING } },
+            catchySpice: { type: Type.STRING },
+            thematicNarrative: { type: Type.STRING },
+            sunoStylePrompt: { type: Type.STRING },
+            sunoLyrics: { type: Type.STRING },
+          },
+          required: [
+            "title", "baseBpm", "dominantKey", "combinedProgression", "suggestedStructure",
+            "averageEnergy", "overallMood", "instruments", "catchySpice",
+            "thematicNarrative", "sunoStylePrompt", "sunoLyrics"
+          ],
+        },
+      },
+    })
+  );
 
   return parseGeminiJson<HybridDNA>(response.text);
 };
@@ -274,7 +400,8 @@ const updateSunoPromptBrowser = async (
 
   Return a JSON object with keys: sunoStylePrompt, sunoLyrics.`;
 
-  const response = await ai.models.generateContent({
+  const response = await callGeminiWithRetry(
+    () => ai.models.generateContent({
     model: CREATIVE_MODEL,
     contents: prompt,
     config: {
@@ -289,7 +416,24 @@ const updateSunoPromptBrowser = async (
         required: ["sunoStylePrompt", "sunoLyrics"],
       },
     },
-  });
+    }),
+    () => ai.models.generateContent({
+      model: CREATIVE_FALLBACK_MODEL,
+      contents: prompt,
+      config: {
+        tools: [{ urlContext: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            sunoStylePrompt: { type: Type.STRING },
+            sunoLyrics: { type: Type.STRING },
+          },
+          required: ["sunoStylePrompt", "sunoLyrics"],
+        },
+      },
+    })
+  );
 
   return parseGeminiJson<{ sunoStylePrompt: string; sunoLyrics: string }>(response.text);
 };
@@ -309,7 +453,7 @@ const extractTracksFromTextOrUrlBrowser = async (input: string, signal?: AbortSi
 
   Return a JSON array of objects, each containing: "title" and "artist".`;
 
-  const response = await ai.models.generateContent({
+  const response = await callGeminiWithRetry(() => ai.models.generateContent({
     model: COST_OPTIMIZED_MODEL,
     contents: prompt,
     config: {
@@ -326,7 +470,7 @@ const extractTracksFromTextOrUrlBrowser = async (input: string, signal?: AbortSi
         },
       },
     },
-  });
+  }));
 
   return parseGeminiJson<{ title: string; artist: string }[]>(response.text);
 };
