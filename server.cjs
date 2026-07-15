@@ -31,6 +31,7 @@ var import_url = require("url");
 var import_genai = require("@google/genai");
 var COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
 var CREATIVE_MODEL = COST_OPTIMIZED_MODEL;
+var ADVANCED_CREATIVE_MODEL = "gemini-3.5-flash";
 var CREATIVE_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 var TRANSIENT_GEMINI_MESSAGE = "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
 var QUOTA_GEMINI_MESSAGE = "A cota da API Gemini parece ter sido atingida para esta chave/projeto. Verifique os limites no Google AI Studio ou tente outra chave.";
@@ -154,8 +155,9 @@ var analyzePlaylistDNAServer = async (tracks, clientApiKey) => {
   }
   return JSON.parse(response.text);
 };
-var createHybridDNAServer = async (dnas, instrumentalOnly, mashupMode = false, lyricsLanguage = "Portugu\xEAs", soloInstruments, baseInstruments, clientApiKey) => {
+var createHybridDNAServer = async (dnas, instrumentalOnly, mashupMode = false, lyricsLanguage = "Portugu\xEAs", soloInstruments, baseInstruments, clientApiKey, useAdvancedModel = false) => {
   const ai = getAi(clientApiKey);
+  const creativeModel = useAdvancedModel ? ADVANCED_CREATIVE_MODEL : CREATIVE_MODEL;
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Autom\xE1tico pelo SUNO") ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.` : `SOLO INSTRUMENTS: Let Suno decide or generate automatically based on the original playlist's DNA.`;
   const baseText = baseInstruments && baseInstruments.length > 0 && !baseInstruments.includes("Autom\xE1tico pelo SUNO") ? `SPECIFIC BACKING/BASE INSTRUMENTS: The user wants these specific instruments for the rhythm/harmonic base: ${baseInstruments.join(", ")}. Ensure they are explicitly added as style/backing arrangement tags in the sunoStylePrompt.` : `BACKING/BASE INSTRUMENTS: Synthesize based on the original playlist's style.`;
   const prompt = `Based on the following musical DNAs, create a single "Hybrid DNA" that combines their best elements into a new, cohesive musical profile.
@@ -231,7 +233,7 @@ var createHybridDNAServer = async (dnas, instrumentalOnly, mashupMode = false, l
     }
   });
   const response = await callGeminiWithRetry(
-    () => generateHybrid(CREATIVE_MODEL),
+    () => generateHybrid(creativeModel),
     () => generateHybrid(CREATIVE_FALLBACK_MODEL)
   );
   if (!response.text) {
@@ -239,8 +241,9 @@ var createHybridDNAServer = async (dnas, instrumentalOnly, mashupMode = false, l
   }
   return JSON.parse(response.text);
 };
-var updateSunoPromptServer = async (dna, instrumentalOnly, lyricsLanguage = "Portugu\xEAs", soloInstruments, baseInstruments, clientApiKey) => {
+var updateSunoPromptServer = async (dna, instrumentalOnly, lyricsLanguage = "Portugu\xEAs", soloInstruments, baseInstruments, clientApiKey, useAdvancedModel = false) => {
   const ai = getAi(clientApiKey);
+  const creativeModel = useAdvancedModel ? ADVANCED_CREATIVE_MODEL : CREATIVE_MODEL;
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Autom\xE1tico pelo SUNO") ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.` : `SOLO INSTRUMENTS: Let Suno decide or generate automatically based on the original playlist's DNA.`;
   const baseText = baseInstruments && baseInstruments.length > 0 && !baseInstruments.includes("Autom\xE1tico pelo SUNO") ? `SPECIFIC BACKING/BASE INSTRUMENTS: The user wants these specific instruments for the rhythm/harmonic base: ${baseInstruments.join(", ")}. Ensure they are explicitly added as style/backing arrangement tags in the sunoStylePrompt.` : `BACKING/BASE INSTRUMENTS: Synthesize based on the original playlist's style.`;
   const prompt = `Update the Suno AI prompt configuration for this Hybrid DNA.
@@ -287,7 +290,7 @@ var updateSunoPromptServer = async (dna, instrumentalOnly, lyricsLanguage = "Por
     }
   });
   const response = await callGeminiWithRetry(
-    () => updatePrompt(CREATIVE_MODEL),
+    () => updatePrompt(creativeModel),
     () => updatePrompt(CREATIVE_FALLBACK_MODEL)
   );
   if (!response.text) {
@@ -379,6 +382,7 @@ async function startServer() {
         return;
       }
       const clientApiKey = req.headers["x-gemini-api-key"];
+      const useAdvancedModel = req.headers["x-gemini-use-advanced-model"] === "true";
       const hybrid = await createHybridDNAServer(
         dnas,
         !!instrumentalOnly,
@@ -386,7 +390,8 @@ async function startServer() {
         lyricsLanguage || "Portugu\xEAs",
         soloInstruments,
         baseInstruments,
-        clientApiKey
+        clientApiKey,
+        useAdvancedModel
       );
       res.json(hybrid);
     } catch (error) {
@@ -402,13 +407,15 @@ async function startServer() {
         return;
       }
       const clientApiKey = req.headers["x-gemini-api-key"];
+      const useAdvancedModel = req.headers["x-gemini-use-advanced-model"] === "true";
       const updated = await updateSunoPromptServer(
         dna,
         !!instrumentalOnly,
         lyricsLanguage || "Portugu\xEAs",
         soloInstruments,
         baseInstruments,
-        clientApiKey
+        clientApiKey,
+        useAdvancedModel
       );
       res.json(updated);
     } catch (error) {
