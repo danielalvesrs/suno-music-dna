@@ -64,6 +64,7 @@ async function startServer() {
         return;
       }
       const clientApiKey = req.headers["x-gemini-api-key"] as string | undefined;
+      const useAdvancedModel = req.headers["x-gemini-use-advanced-model"] === "true";
       const hybrid = await createHybridDNAServer(
         dnas, 
         !!instrumentalOnly, 
@@ -71,7 +72,8 @@ async function startServer() {
         lyricsLanguage || "Português", 
         soloInstruments, 
         baseInstruments, 
-        clientApiKey
+        clientApiKey,
+        useAdvancedModel
       );
       res.json(hybrid);
     } catch (error: any) {
@@ -89,13 +91,15 @@ async function startServer() {
         return;
       }
       const clientApiKey = req.headers["x-gemini-api-key"] as string | undefined;
+      const useAdvancedModel = req.headers["x-gemini-use-advanced-model"] === "true";
       const updated = await updateSunoPromptServer(
         dna, 
         !!instrumentalOnly, 
         lyricsLanguage || "Português", 
         soloInstruments, 
         baseInstruments, 
-        clientApiKey
+        clientApiKey,
+        useAdvancedModel
       );
       res.json(updated);
     } catch (error: any) {

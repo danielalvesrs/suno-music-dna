@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
 const CREATIVE_MODEL = COST_OPTIMIZED_MODEL;
+const ADVANCED_CREATIVE_MODEL = "gemini-3.5-flash";
 const CREATIVE_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 const TRANSIENT_GEMINI_MESSAGE =
   "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
@@ -197,9 +198,11 @@ export const createHybridDNAServer = async (
   lyricsLanguage: string = "Português", 
   soloInstruments?: string[],
   baseInstruments?: string[],
-  clientApiKey?: string
+  clientApiKey?: string,
+  useAdvancedModel: boolean = false
 ): Promise<HybridDNA> => {
   const ai = getAi(clientApiKey);
+  const creativeModel = useAdvancedModel ? ADVANCED_CREATIVE_MODEL : CREATIVE_MODEL;
   
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Automático pelo SUNO")
     ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.`
@@ -275,7 +278,7 @@ export const createHybridDNAServer = async (
   });
 
   const response = await callGeminiWithRetry(
-    () => generateHybrid(CREATIVE_MODEL),
+    () => generateHybrid(creativeModel),
     () => generateHybrid(CREATIVE_FALLBACK_MODEL)
   );
 
@@ -292,9 +295,11 @@ export const updateSunoPromptServer = async (
   lyricsLanguage: string = "Português", 
   soloInstruments?: string[],
   baseInstruments?: string[],
-  clientApiKey?: string
+  clientApiKey?: string,
+  useAdvancedModel: boolean = false
 ): Promise<{ sunoStylePrompt: string; sunoLyrics: string }> => {
   const ai = getAi(clientApiKey);
+  const creativeModel = useAdvancedModel ? ADVANCED_CREATIVE_MODEL : CREATIVE_MODEL;
   
   const soloText = soloInstruments && soloInstruments.length > 0 && !soloInstruments.includes("Automático pelo SUNO")
     ? `SPECIFIC SOLO INSTRUMENTS: The user wants these specific instruments for solos: ${soloInstruments.join(", ")}. Ensure they are explicitly added to the sunoStylePrompt and included in solo structure tags (e.g. [${soloInstruments[0]} Solo], [Solo de ${soloInstruments[0]}] or similar) in the sunoLyrics.`
@@ -350,7 +355,7 @@ export const updateSunoPromptServer = async (
   });
 
   const response = await callGeminiWithRetry(
-    () => updatePrompt(CREATIVE_MODEL),
+    () => updatePrompt(creativeModel),
     () => updatePrompt(CREATIVE_FALLBACK_MODEL)
   );
 

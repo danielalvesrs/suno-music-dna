@@ -29,6 +29,7 @@ export interface HybridDNA {
 
 const COST_OPTIMIZED_MODEL = "gemini-3.1-flash-lite";
 const CREATIVE_MODEL = COST_OPTIMIZED_MODEL;
+const ADVANCED_CREATIVE_MODEL = "gemini-3.5-flash";
 const CREATIVE_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 const TRANSIENT_GEMINI_MESSAGE =
   "O modelo Gemini esta temporariamente congestionado. Aguarde 1 ou 2 minutos e tente novamente; sua chave esta ok, e esse erro costuma ser momentaneo.";
@@ -39,6 +40,14 @@ const getCustomApiKey = () => (
   typeof window !== "undefined" ? localStorage.getItem("user_gemini_api_key")?.trim() || "" : ""
 );
 
+const getUseAdvancedGeminiModel = () => (
+  typeof window !== "undefined" ? localStorage.getItem("user_gemini_use_advanced_model") === "true" : false
+);
+
+const getCreativeModel = () => (
+  getUseAdvancedGeminiModel() ? ADVANCED_CREATIVE_MODEL : CREATIVE_MODEL
+);
+
 const getCustomHeaders = () => {
   const customKey = getCustomApiKey();
   const headers: Record<string, string> = {
@@ -46,6 +55,9 @@ const getCustomHeaders = () => {
   };
   if (customKey) {
     headers["x-gemini-api-key"] = customKey;
+  }
+  if (getUseAdvancedGeminiModel()) {
+    headers["x-gemini-use-advanced-model"] = "true";
   }
   return headers;
 };
@@ -296,7 +308,7 @@ const createHybridDNABrowser = async (
 
   const response = await callGeminiWithRetry(
     () => ai.models.generateContent({
-    model: CREATIVE_MODEL,
+    model: getCreativeModel(),
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -397,7 +409,7 @@ const updateSunoPromptBrowser = async (
 
   const response = await callGeminiWithRetry(
     () => ai.models.generateContent({
-    model: CREATIVE_MODEL,
+    model: getCreativeModel(),
     contents: prompt,
     config: {
       responseMimeType: "application/json",

@@ -112,6 +112,13 @@ export default function App() {
     }
   });
 
+  const [useAdvancedModel, setUseAdvancedModel] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('user_gemini_use_advanced_model') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
   const [showWelcome, setShowWelcome] = useState<boolean>(() => {
     try {
       return localStorage.getItem('hide_welcome_modal_suno') !== 'true';
@@ -647,6 +654,36 @@ export default function App() {
                       </a>
                     </div>
 
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 space-y-3 text-xs text-blue-900">
+                      <div className="flex items-center gap-2 font-extrabold uppercase tracking-wider text-[10px] text-blue-700">
+                        <Key size={13} />
+                        Qual chave usar?
+                      </div>
+                      <div className="space-y-2 leading-relaxed text-blue-800">
+                        <p><strong>Chave gratuita:</strong> ideal para testar, com limites menores. O app usa Gemini Flash-Lite por padrao para reduzir custo e evitar bloqueios.</p>
+                        <p><strong>Chave com billing ativo/paga:</strong> indicada para uso frequente. Ao ativar a opcao abaixo, o app usara o modelo criativo mais avancado nas etapas de DNA hibrido e prompt SUNO.</p>
+                        <p>O app nao detecta sozinho se sua chave e paga. Ative o modelo avancado somente com chave paga ou projeto com billing ativo; com chave gratuita, essa opcao pode gerar erro na API. Erro 503 geralmente significa alta demanda temporaria, nao chave invalida.</p>
+                      </div>
+                      <label className="flex items-start gap-3 rounded-xl border border-blue-200 bg-white/70 p-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useAdvancedModel}
+                          onChange={(e) => {
+                            const enabled = e.target.checked;
+                            if (enabled && !window.confirm('Use o modelo avancado somente se sua chave Gemini estiver em um projeto pago ou com billing ativo. Com chave gratuita, esta opcao pode gerar erro na API. Deseja ativar mesmo assim?')) {
+                              return;
+                            }
+                            setUseAdvancedModel(enabled);
+                            localStorage.setItem('user_gemini_use_advanced_model', enabled ? 'true' : 'false');
+                          }}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-blue-600"
+                        />
+                        <span className="block leading-relaxed text-blue-900">
+                          <strong className="block">Minha chave e paga/tem billing ativo: usar modelo avancado</strong>
+                          <span className="text-blue-700">Quando ligado, o app usa Gemini 3.5 Flash nas etapas criativas. Ligue apenas com chave paga ou billing ativo; se sua chave for gratuita, deixe desligado para usar Flash-Lite.</span>
+                        </span>
+                      </label>
+                    </div>
                     <div className="space-y-4 pt-2">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -670,7 +707,7 @@ export default function App() {
                             if (customApiKey.trim()) {
                               localStorage.setItem('user_gemini_api_key', customApiKey.trim());
                               setHasCustomKey(true);
-                              alert('Chave de API salva com sucesso! Ela será usada para as próximas análises.');
+                              alert(useAdvancedModel ? 'Chave salva. Modelo avancado ativado. Use apenas com chave paga ou billing ativo; chave gratuita pode gerar erro.' : 'Chave salva. Modo gratuito/economico ativado com Gemini Flash-Lite.');
                             } else {
                               alert('Por favor, digite uma chave válida.');
                             }
@@ -683,8 +720,10 @@ export default function App() {
                           <button
                             onClick={() => {
                               localStorage.removeItem('user_gemini_api_key');
+                              localStorage.removeItem('user_gemini_use_advanced_model');
                               setCustomApiKey("");
                               setHasCustomKey(false);
+                              setUseAdvancedModel(false);
                               alert('Sua chave personalizada foi removida. Para usar a demo novamente, salve uma nova chave Gemini.');
                             }}
                             className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
@@ -846,7 +885,7 @@ export default function App() {
                       <div>
                         <p className="font-bold">Dica de Alquimia:</p>
                         <p className="mt-0.5 leading-relaxed text-orange-700">
-                          Configure sua própria chave de API gratuita do Google AI Studio no painel de configurações (ícone de engrenagem no topo direito) para ter maior limite de cota.
+                          Configure sua propria chave no painel Chave API. A chave gratuita serve para testes; se ativar billing no projeto ou usar chave paga, ligue o modelo avancado para usar Gemini 3.5 Flash nas etapas criativas.
                         </p>
                       </div>
                     </div>
